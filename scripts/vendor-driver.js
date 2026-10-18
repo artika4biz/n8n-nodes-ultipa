@@ -18,33 +18,64 @@
 const fs   = require('fs');
 const path = require('path');
 
-/**
- * Where the driver checkout lives. Resolution order:
- *
- *   1. $ULTIPA_DRIVER_ROOT, for a checkout anywhere on disk
- *   2. the sibling gqldb-drivers/nodejs next to this repo, which is the
- *      layout the README's Quick Start describes
- *
- * This used to be a hardcoded absolute path, which meant the vendor step only
- * ever worked on one machine — and silently published that path.
- */
-const DEFAULT_DRIVER_ROOT = path.resolve(__dirname, '../../../gqldb-drivers/nodejs');
-const DRIVER_ROOT  = process.env.ULTIPA_DRIVER_ROOT
-  ? path.resolve(process.env.ULTIPA_DRIVER_ROOT)
-  : DEFAULT_DRIVER_ROOT;
-const VENDOR_ROOT  = path.resolve(__dirname, '../vendor/ultipa-driver');
-const DRIVER_DIST  = path.join(DRIVER_ROOT, 'dist');
+const PACKAGE_ROOT = path.resolve(__dirname, '..');
+const VENDOR_ROOT  = path.join(PACKAGE_ROOT, 'vendor/ultipa-driver');
 const VENDOR_DIST  = path.join(VENDOR_ROOT, 'dist');
+
+/** How far up to look for the driver before giving up. */
+const MAX_LEVELS = 5;
+
+/**
+ * Locate the driver checkout.
+ *
+ * $ULTIPA_DRIVER_ROOT wins when set. Otherwise walk up from the package root
+ * looking for gqldb-drivers/nodejs, which finds it whether this package sits
+ * directly beside the driver (a fresh clone) or a level or two deeper inside a
+ * workspace. A fixed relative depth cannot cover both, and the absolute path
+ * this once hardcoded covered only the machine it was written on.
+ */
+function findDriverRoot() {
+  if (process.env.ULTIPA_DRIVER_ROOT) {
+    return { root: path.resolve(process.env.ULTIPA_DRIVER_ROOT), from: '$ULTIPA_DRIVER_ROOT' };
+  }
+
+  let dir = PACKAGE_ROOT;
+  const tried = [];
+  for (let level = 0; level < MAX_LEVELS; level++) {
+    const candidate = path.join(dir, 'gqldb-drivers', 'nodejs');
+    tried.push(candidate);
+    if (fs.existsSync(path.join(candidate, 'package.json'))) {
+      return { root: candidate, from: 'found beside the package' };
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break; // hit the filesystem root
+    dir = parent;
+  }
+  return { root: null, tried };
+}
+
+const found = findDriverRoot();
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 
+if (!found.root) {
+  console.error(
+    '\n[vendor-driver] ERROR: no gqldb-drivers/nodejs checkout found.\n\n'
+    + 'Looked in:\n'
+    + found.tried.map((p) => `  ${p}\n`).join('')
+    + '\nPoint $ULTIPA_DRIVER_ROOT at your checkout:\n'
+    + '  ULTIPA_DRIVER_ROOT=/path/to/gqldb-drivers/nodejs npm run vendor\n'
+  );
+  process.exit(1);
+}
+
+const DRIVER_ROOT = found.root;
+const DRIVER_DIST = path.join(DRIVER_ROOT, 'dist');
+
 if (!fs.existsSync(DRIVER_ROOT)) {
   console.error(
-    `\n[vendor-driver] ERROR: no driver checkout at\n  ${DRIVER_ROOT}\n\n`
-    + (process.env.ULTIPA_DRIVER_ROOT
-      ? 'That path came from $ULTIPA_DRIVER_ROOT.\n'
-      : 'Expected it beside this repo. Point $ULTIPA_DRIVER_ROOT at your checkout:\n'
-        + '  ULTIPA_DRIVER_ROOT=/path/to/gqldb-drivers/nodejs npm run vendor\n')
+    `\n[vendor-driver] ERROR: no driver checkout at\n  ${DRIVER_ROOT}\n`
+    + `That path came from ${found.from}.\n`
   );
   process.exit(1);
 }
@@ -58,7 +89,7 @@ if (!fs.existsSync(DRIVER_DIST)) {
   process.exit(1);
 }
 
-console.log(`[vendor-driver] driver: ${DRIVER_ROOT}`);
+console.log(`[vendor-driver] driver: ${DRIVER_ROOT} (${found.from})`);
 
 // ── Clean previous vendor copy ────────────────────────────────────────────────
 

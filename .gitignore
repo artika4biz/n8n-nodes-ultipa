@@ -1,1 +1,18 @@
+node_modules/
+dist/
+vendor/
+*.js.map
+*.d.ts.map
+
+# `npm pack` output. The current version's tarball is tracked on purpose --
+# the README uses it as the install path -- and stays tracked because
+# .gitignore does not untrack a file git already knows about.
+#
+# Caveat for the next version bump: a NEW filename is a new, untracked path,
+# so this rule hides it and `git add -A` will skip it. Force it in:
+#   git add -f n8n-nodes-ultipa-<version>.tgz
+# and `git rm --cached` the previous one.
+*.tgz
+
+# OS noise (came from the former parent folder's .gitignore)
 .DS_Store
