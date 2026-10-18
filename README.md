@@ -8,6 +8,11 @@ An [n8n](https://n8n.io) community node package that connects n8n workflows to t
 
 <img src="ultipa_n8n_project_logo.png" width="300" height="300" alt="Ultipa n8n Node"/>
 
+> **Building workflows with this node?** Start with the
+> **[User Guide](docs/USER_GUIDE.md)** — a task-oriented manual for end users,
+> covering every resource and operation, with no build or TypeScript detail.
+> The rest of this README is for developing and packaging the connector itself.
+
 ## Table of Contents
 
 1. [Overview](#overview)
