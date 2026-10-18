@@ -1,0 +1,71 @@
+{
+  "name": "n8n-nodes-ultipa",
+  "version": "0.2.0",
+  "description": "n8n nodes to interact with Ultipa Graph Database via GQL",
+  "keywords": [
+    "n8n-community-node-package",
+    "ultipa",
+    "graph",
+    "database",
+    "gql"
+  ],
+  "license": "MIT",
+  "homepage": "https://ultipa.com",
+  "author": {
+    "name": "Ultipa"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/artika4biz/n8n-nodes-ultipa",
+    "directory": "n8n-nodes-ultipa"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && npm run copy-icons",
+    "copy-icons": "node -e \"const fs=require('fs'),path=require('path'); const src='src/nodes/Ultipa/ultipa.svg'; const dest='dist/nodes/Ultipa/ultipa.svg'; fs.mkdirSync(path.dirname(dest),{recursive:true}); if(fs.existsSync(src)) fs.copyFileSync(src,dest);\"",
+    "test": "node tests/run.js",
+    "pretest": "npm run build",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts",
+    "lintfix": "eslint src --ext .ts --fix",
+    "vendor": "node scripts/vendor-driver.js",
+    "prepack": "npm run vendor",
+    "prepublishOnly": "npm run build"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/UltipaApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Ultipa/Ultipa.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "n8n-workflow": "^1.0.0",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "peerDependenciesMeta": {
+    "n8n-workflow": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist",
+    "vendor",
+    "package.json"
+  ],
+  "bundledDependencies": [
+    "@ultipa-graph/ultipa-driver"
+  ],
+  "dependencies": {
+    "@ultipa-graph/ultipa-driver": "file:./vendor/ultipa-driver"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
