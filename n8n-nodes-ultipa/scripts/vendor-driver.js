@@ -18,20 +18,47 @@
 const fs   = require('fs');
 const path = require('path');
 
-const DRIVER_ROOT  = '/Users/artika/Documents/ARTIKA/ULTIPA/professional-services/git-hub-ultipa/gqldb-drivers/nodejs';
+/**
+ * Where the driver checkout lives. Resolution order:
+ *
+ *   1. $ULTIPA_DRIVER_ROOT, for a checkout anywhere on disk
+ *   2. the sibling gqldb-drivers/nodejs next to this repo, which is the
+ *      layout the README's Quick Start describes
+ *
+ * This used to be a hardcoded absolute path, which meant the vendor step only
+ * ever worked on one machine — and silently published that path.
+ */
+const DEFAULT_DRIVER_ROOT = path.resolve(__dirname, '../../../gqldb-drivers/nodejs');
+const DRIVER_ROOT  = process.env.ULTIPA_DRIVER_ROOT
+  ? path.resolve(process.env.ULTIPA_DRIVER_ROOT)
+  : DEFAULT_DRIVER_ROOT;
 const VENDOR_ROOT  = path.resolve(__dirname, '../vendor/ultipa-driver');
 const DRIVER_DIST  = path.join(DRIVER_ROOT, 'dist');
 const VENDOR_DIST  = path.join(VENDOR_ROOT, 'dist');
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 
-if (!fs.existsSync(DRIVER_DIST)) {
+if (!fs.existsSync(DRIVER_ROOT)) {
   console.error(
-    `\n[vendor-driver] ERROR: ${DRIVER_DIST} does not exist.\n` +
-    `Run "npm run build" in the nodejs/ directory first.\n`
+    `\n[vendor-driver] ERROR: no driver checkout at\n  ${DRIVER_ROOT}\n\n`
+    + (process.env.ULTIPA_DRIVER_ROOT
+      ? 'That path came from $ULTIPA_DRIVER_ROOT.\n'
+      : 'Expected it beside this repo. Point $ULTIPA_DRIVER_ROOT at your checkout:\n'
+        + '  ULTIPA_DRIVER_ROOT=/path/to/gqldb-drivers/nodejs npm run vendor\n')
   );
   process.exit(1);
 }
+
+if (!fs.existsSync(DRIVER_DIST)) {
+  console.error(
+    `\n[vendor-driver] ERROR: ${DRIVER_DIST} does not exist.\n`
+    + `The driver is present but not built. Run:\n`
+    + `  cd ${DRIVER_ROOT} && npm run build\n`
+  );
+  process.exit(1);
+}
+
+console.log(`[vendor-driver] driver: ${DRIVER_ROOT}`);
 
 // ── Clean previous vendor copy ────────────────────────────────────────────────
 

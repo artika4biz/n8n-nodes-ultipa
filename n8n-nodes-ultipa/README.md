@@ -118,22 +118,40 @@ N8N-ysv/
 
 ## Quick Start
 
-```bash
-# 1. Build the driver first (required — the n8n package links to it via file:)
-cd N8N-ysv/nodejs
-npm install
-npm run build
+This package depends on the Ultipa Node.js driver through
+`file:./vendor/ultipa-driver`, and `vendor/` is **not** in the repository. So
+the driver has to be built and copied in before `npm install` can resolve
+anything. Expected layout — the driver checkout sits beside this one:
 
-# 2. Install and build the n8n package
-cd ../n8n-nodes-ultipa
+```
+<parent>/
+├── gqldb-drivers/nodejs      the driver (github.com/ultipa/gqldb-drivers)
+└── <this repo>/n8n-nodes-ultipa
+```
+
+```bash
+# 1. Build the driver (the n8n package links to its compiled dist/)
+cd ../gqldb-drivers/nodejs
+npm install && npm run build
+
+# 2. Copy the built driver into vendor/, then install
+cd -                    # back to n8n-nodes-ultipa
+npm run vendor          # must precede npm install: it creates vendor/
 npm install
 npm run build
+npm test                # optional: 192 cases, no server needed
 
 # 3. Install into your n8n instance's custom nodes directory
 #    (typically ~/.n8n/custom or the path set via N8N_CUSTOM_EXTENSIONS)
 npm install /absolute/path/to/n8n-nodes-ultipa
 
 # 4. Restart n8n — the "Ultipa" node will appear in the node palette
+```
+
+If the driver lives somewhere else, point `ULTIPA_DRIVER_ROOT` at it:
+
+```bash
+ULTIPA_DRIVER_ROOT=/path/to/gqldb-drivers/nodejs npm run vendor
 ```
 
 ---
@@ -578,13 +596,18 @@ Each description file exports two arrays:
 ### Building
 
 ```bash
-# Full rebuild (driver → n8n node)
-cd /Users/artika/Documents/ARTIKA/ULTIPA/professional-services/git-hub-ultipa/gqldb-drivers/nodejs && npm install && npm run build
-cd ../n8n-nodes-ultipa && npm install && npm run build
+# Full rebuild (driver → vendor → n8n node), from n8n-nodes-ultipa/
+(cd ../gqldb-drivers/nodejs && npm install && npm run build)
+npm run vendor && npm install && npm run build
 
 # Watch mode during development
-cd n8n-nodes-ultipa && npm run dev
+npm run dev
 ```
+
+`npm run vendor` finds the driver beside this repo, or wherever
+`ULTIPA_DRIVER_ROOT` points. Re-run it after every driver rebuild — `npm pack`
+does so automatically via `prepack`, but a plain `npm run build` does not, so a
+stale `vendor/` is the usual reason a driver change seems to have no effect.
 
 ### Local Development (zero-install workflow)
 
