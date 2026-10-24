@@ -1,0 +1,43 @@
+# GQLDB next to n8n on one internal network. No published database port: n8n reaches
+# the server as `ultipa-gql:9000`; nothing of the database is exposed to the outside.
+services:
+  ultipa-gql:
+    build:
+      context: .
+      args:
+        ULTIPA_VERSION: "6.2.155"
+    image: ultipa-gqldb:6.2.155
+    container_name: ultipa-gql
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+    networks:
+      - n8n_net
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  # Optional: a throwaway n8n for trying the node. Install the node package into
+  # ~/.n8n/custom (see README.md) and create an "Ultipa API" credential with host
+  # ultipa-gql:9000.
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-ultipa-dev
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - GENERIC_TIMEZONE=Europe/Berlin
+    volumes:
+      - ./n8n:/home/node/.n8n
+    networks:
+      - n8n_net
+    depends_on:
+      - ultipa-gql
+
+networks:
+  n8n_net:
+    driver: bridge
