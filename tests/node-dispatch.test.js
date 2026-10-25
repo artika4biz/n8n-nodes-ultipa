@@ -261,13 +261,32 @@ module.exports = suite('node dispatch', (test) => {
     assert.equal(client.only('showNodeTypes').args[0], undefined);
   });
 
-  test('graph stats asks for the graph per call', async () => {
-    const { client } = await runNode(
+  test('graph stats uses GetStatistics for the named graph, not db.stats()', async () => {
+    // client.stats() is backed by `RETURN db.stats()`, which GQLDB 6.2.155 answers
+    // with zeros for a populated graph; GetStatistics counts correctly.
+    const { client, items } = await runNode(
       { resource: 'graph', operation: 'stats', graphName: 'g' },
-      { stats: { graphName: 'g', nodeCount: 1, edgeCount: 0 } },
+      { getStatistics: { nodeCount: 2, edgeCount: 1, labelCounts: { Person: 2 }, edgeLabelCounts: { KNOWS: 1 } } },
     );
     assert.equal(client.callsTo('useGraph').length, 0);
-    assert.deepEqual(client.only('stats').args[0], { graphName: 'g' });
+    assert.equal(client.callsTo('stats').length, 0);
+    assert.equal(client.only('getStatistics').args[0], 'g');
+    assert.equal(items[0].json.graphName, 'g');
+    assert.equal(items[0].json.nodeCount, 2);
+  });
+
+  test('query profile runs PROFILE as GQL and returns the full table', async () => {
+    // The gRPC Profile call returns only "Parse" on GQLDB 6.2.155; the GQL
+    // statement returns Phase/Time_ms/Alloc_MB/Rows_In/Rows_Out/Details rows.
+    const { client, items } = await runNode(
+      { resource: 'query', operation: 'profile', query: 'MATCH (n) RETURN count(n)', graphName: 'g' },
+      { gql: rowResponse(['Phase', 'Time_ms'], ['Parse', 0.057], 0) },
+    );
+    assert.equal(client.callsTo('profile').length, 0);
+    const [gql, config] = client.only('gql').args;
+    assert.equal(gql, 'PROFILE MATCH (n) RETURN count(n)');
+    assert.equal(config.graphName, 'g');
+    assert.deepEqual(items[0].json.columns, ['Phase', 'Time_ms']);
   });
 
   test('graph "use" still switches the session graph — that is its purpose', async () => {

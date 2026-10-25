@@ -181,10 +181,14 @@ export class Ultipa implements INodeType {
             result = { plan };
 
           } else if (operation === 'profile') {
-            const stats = await client.profile(query, {
+            // The gRPC Profile call returns only the first phase name ("Parse") on
+            // GQLDB 6.2.155, while `PROFILE <query>` as a GQL statement returns the
+            // full table (Phase, Time_ms, Alloc_MB, Rows_In, Rows_Out, Details).
+            // Measured 2026-10-25 against n8n 2.44.6; so run it as GQL.
+            const resp = await client.gql(`PROFILE ${query}`, {
               graphName: graphName || undefined,
             });
-            result = { stats };
+            result = responseToJson(resp);
           }
 
         // ── NODE ───────────────────────────────────────────────────────────
@@ -369,8 +373,12 @@ export class Ultipa implements INodeType {
 
           } else if (operation === 'stats') {
             const graphName = this.getNodeParameter('graphName', i) as string;
-            const stats = await client.stats({ graphName });
-            result = serializeValue(stats);
+            // client.stats() is backed by `RETURN db.stats()`, which GQLDB 6.2.155
+            // answers with zero counts even for a populated graph. The gRPC
+            // GetStatistics call counts correctly (measured 2026-10-25), so use it
+            // and keep the graphName in the result for compatibility.
+            const stats = await client.getStatistics(graphName);
+            result = { graphName, ...(serializeValue(stats) as Record<string, unknown>) };
           }
 
         // ── SCHEMA ─────────────────────────────────────────────────────────
