@@ -89,6 +89,8 @@ export const graphFields: INodeProperties[] = [
       { name: 'Ontology', value: 'ontology' },
     ],
     default: 'open',
+    description:
+      'Open graphs are schema-less: Schema operations (create/drop labels, properties, indexes) are rejected by the server ("cannot add node type to open graph"). Choose Closed if you want to manage labels with the Schema resource.',
     displayOptions: { show: { resource: ['graph'], operation: ['create'] } },
   },
   {

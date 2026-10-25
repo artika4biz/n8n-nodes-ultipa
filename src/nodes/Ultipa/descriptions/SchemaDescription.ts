@@ -2,6 +2,14 @@ import { INodeProperties } from 'n8n-workflow';
 
 export const schemaOperations: INodeProperties[] = [
   {
+    displayName:
+      'Label, property and index operations need a graph created as <b>Closed</b> (schema-enforced). On an <b>Open</b> graph the server rejects them with "cannot add node type to open graph".',
+    name: 'schemaGraphTypeNotice',
+    type: 'notice',
+    default: '',
+    displayOptions: { show: { resource: ['schema'] } },
+  },
+  {
     displayName: 'Operation',
     name: 'operation',
     type: 'options',
